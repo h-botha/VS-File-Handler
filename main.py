@@ -254,8 +254,8 @@ if __name__ == "__main__":
     #SET RUN MODE (0 for running in UT, 1 for testing in CA)
     runmode = 0
     if runmode == 0:
-        # directory_to_watch = r'C:\Keyence Final Inspect\VS Output'
-        directory_to_watch = r'C:/Users/hbotha/VS_File_Handler 2-1/VS-File-Handler/VS Output'
+        directory_to_watch = r'C:\Keyence Final Inspect\VS Output'
+        # directory_to_watch = r'C:/Users/hbotha/VS_File_Handler 2-1/VS-File-Handler/VS Output'
         db_path = r'\\rantec-ut-fs\ftp image\db\VS_Results.db'
         sn_db = r'\\rantec-ut-fs\ftp image\db\sn_log.db'
         IR_Archive = r'\\rantec-ut-fs\ftp image\Inspection Results Archive\PL39669'
