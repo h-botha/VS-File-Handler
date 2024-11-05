@@ -185,7 +185,7 @@ class CsvFileHandler(FileSystemEventHandler):
     
     def getWO(self):
         sn_value = int(self.sn_value)
-        sn_conn = sqlite3.connect(r'sn_log.db')
+        sn_conn = sqlite3.connect(sn_db)
         query = f"""
         SELECT WO
         FROM SNs
@@ -239,7 +239,8 @@ if __name__ == "__main__":
     runmode = 0
     if runmode == 0:
         directory_to_watch = r'C:\Keyence Final Inspect\VS Output'
-        db_path = r'C:\Keyence Final Inspect\VS_Results.db'
+        db_path = r'\\rantec-ut-fs\ftp image\db\VS_Results.db'
+        sn_db = r'\\rantec-ut-fs\ftp image\db\sn_log.db'
     else:
         directory_to_watch = r'VS Output'
         db_path = r'VS_Results.db'
