@@ -4,6 +4,9 @@ Created on Thu Aug 22 15:12:33 2024
 
 @author: hbotha
 """
+#TODO:
+#Update to automatically move all files to fs location
+#Add PN column to main DB
 
 import os
 import time
@@ -108,9 +111,17 @@ class CsvFileHandler(FileSystemEventHandler):
         if event.src_path.endswith('png') and 'FinishInspection' in event.src_path:
             if self.stateCount == 6 and len(self.csv_files) == 6 and len(self.graphics_files) == 6:
                 self.stateCount = 0
-                report_directory = self.move_and_rename()
+                dirs = self.move_and_rename()
+                localdir = dirs[0]
+                networkdir = dirs[1]
                 sleep(1)
-                self.generatePDF(report_directory)
+                self.generatePDF(localdir)
+                
+                print('Moving files to /rantec-ut-fs/...')
+                shutil.move(localdir, networkdir)
+                print('Move complete.')
+                
+                os.startfile(os.path.join(networkdir, f'{self.sn_value}_report.pdf'))
 
                 self.csv_files.clear()
                 self.graphics_files.clear()
@@ -149,9 +160,10 @@ class CsvFileHandler(FileSystemEventHandler):
         report_df, judgement = db_operations.main(db_path, data, self.sn_value, self.wo_value)
 
         generate_IR.main(report_df, report_directory, self.sn_value, self.wo_value, judgement, graphics_photos, normal_photos)
+    
     def move_and_rename(self):
         directoryName = 'SN_'+str(self.sn_value)
-        if os.path.isdir(os.path.join(self.directory_to_watch, directoryName)):
+        if os.path.isdir(os.path.join(IR_Archive, directoryName)) or os.path.isdir(os.path.join(self.directory_to_watch, directoryName)):
             directoryName = directoryName+" "+datetime.now().strftime("%m-%d-%y-%H%M%S")
         
         # Create the directory outside the loop
@@ -175,13 +187,17 @@ class CsvFileHandler(FileSystemEventHandler):
                     shutil.move(source, destination)
                     moved_files_count += 1
                 except Exception as e:
-                    print(f"Error moving file {file}: {e}")
-    
+                    print(f"Error moving file {source} to {destination}: {e}")
+        
+        localdir = os.path.join(self.directory_to_watch, directoryName)
+        networkdir = os.path.join(IR_Archive, directoryName)
+        
         if moved_files_count > 0:
-            return os.path.join(self.directory_to_watch, directoryName)
+            return [localdir, networkdir]
         else:
             return None
         
+
     
     def getWO(self):
         sn_value = int(self.sn_value)
@@ -238,9 +254,11 @@ if __name__ == "__main__":
     #SET RUN MODE (0 for running in UT, 1 for testing in CA)
     runmode = 0
     if runmode == 0:
-        directory_to_watch = r'C:\Keyence Final Inspect\VS Output'
+        # directory_to_watch = r'C:\Keyence Final Inspect\VS Output'
+        directory_to_watch = r'C:/Users/hbotha/VS_File_Handler 2-1/VS-File-Handler/VS Output'
         db_path = r'\\rantec-ut-fs\ftp image\db\VS_Results.db'
         sn_db = r'\\rantec-ut-fs\ftp image\db\sn_log.db'
+        IR_Archive = r'\\rantec-ut-fs\ftp image\Inspection Results Archive\PL39669'
     else:
         directory_to_watch = r'VS Output'
         db_path = r'VS_Results.db'

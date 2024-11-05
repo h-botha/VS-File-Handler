@@ -13,6 +13,7 @@ import merge_svg_jpg
 
 
 def main(df, output_path, sn_value, wo_value, judgement, graphics_photos, normal_photos):
+    
     pdf = PDF(sn_value, wo_value, judgement, graphics_photos, normal_photos)
     pdf.alias_nb_pages()
     pdf.add_page()
@@ -78,7 +79,7 @@ def main(df, output_path, sn_value, wo_value, judgement, graphics_photos, normal
         
     pdf.output(os.path.join(output_path, f'{sn_value}_report.pdf'), 'F')
     
-    os.startfile(os.path.join(output_path, f'{sn_value}_report.pdf'))
+    # os.startfile(os.path.join(output_path, f'{sn_value}_report.pdf'))
     
     for file in os.listdir(output_path):
         if file.endswith(('.png', '.svg')) or (file.endswith('.jpg') and 'Graphics' not in file):
@@ -86,6 +87,7 @@ def main(df, output_path, sn_value, wo_value, judgement, graphics_photos, normal
                 os.remove(os.path.join(output_path, file))
             except Exception as e:
                 continue
+    return output_path
     
 class PDF(FPDF):
     def __init__(self, sn_value, wo_value, judgement, graphics_photos, normal_photos, *args, **kwargs):
