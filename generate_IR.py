@@ -12,9 +12,9 @@ from datetime import datetime
 import merge_svg_jpg
 
 
-def main(df, output_path, sn_value, wo_value, judgement, graphics_photos, normal_photos):
+def main(df, output_path, sn_value, wo_value, judgement, graphics_photos, normal_photos, isDuplicateSN, UID_Grade):
     
-    pdf = PDF(sn_value, wo_value, judgement, graphics_photos, normal_photos)
+    pdf = PDF(sn_value, wo_value, judgement, graphics_photos, normal_photos, isDuplicateSN, UID_Grade)
     pdf.alias_nb_pages()
     pdf.add_page()
     pdf.set_font('Arial', '', 11)
@@ -90,11 +90,14 @@ def main(df, output_path, sn_value, wo_value, judgement, graphics_photos, normal
     return output_path
     
 class PDF(FPDF):
-    def __init__(self, sn_value, wo_value, judgement, graphics_photos, normal_photos, *args, **kwargs):
+    def __init__(self, sn_value, wo_value, judgement, graphics_photos, normal_photos, isDuplicateSN, UID_Grade, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
         self.sn_value = sn_value
         self.wo_value = wo_value
         self.judgement = judgement
+        self.isDuplicateSN = isDuplicateSN
+        self.UID_Grade = UID_Grade
         
         print(f'Generating report for SN {sn_value}')
         
@@ -120,14 +123,31 @@ class PDF(FPDF):
         self.set_text_color(0,0,0)
         self.set_font('Arial', 'B', 12)
         self.set_y(5)
-        self.cell(90, 5, f'P/N: PL39669 S/N: {self.sn_value}', 0, 1, 'L')
+        self.cell(85, 5, f'P/N: PL39669 S/N: {self.sn_value}', 0, 0, 'L')
+        self.cell(25, 5, f'UID Grade: ', 0, 0, 'L')
+        if "3.0" in self.UID_Grade or "4.0" in self.UID_Grade:
+            self.set_text_color(0,200,0)
+        else:
+            self.set_text_color(255,0,0)
+        self.cell(20, 5, self.UID_Grade, 0, 1, 'L')
+        self.set_text_color(0,0,0)
         self.cell(38, 5, 'Overall Pass/Fail:', 0, 0, 'L')
         self.set_text_color(0, 200, 0) if self.judgement == 'PASS' else self.set_text_color(255, 0, 0)
         self.cell(10, 5, self.judgement.upper(), 0, 1, 'L')
         self.set_text_color(0, 0, 0)
         self.cell(90, 5, self.wo_value, 0, 1, 'L')
-        self.cell(90, 5, str(datetime.now().strftime("%m/%d/%Y, %H:%M:%S")), 0, 0, 'L')
-        self.ln(10)
+        self.cell(90, 5, str(datetime.now().strftime("%m/%d/%Y, %H:%M:%S")), 0, 1, 'L')
+        
+        
+        if self.isDuplicateSN != 0:
+            self.set_text_color(255,0,0)
+            self.set_font('Arial', 'B', 12)
+            self.multi_cell(0,5, f"WARNING: DUPLICATE SN DETECTED! REF TXID {self.isDuplicateSN}\nTHIS SN WAS PREVIOUSLY SENT TO CUSTOMER!", 0, 0, 'C')
+            self.set_text_color(0,0,0)
+            self.set_font('Arial', 'B', 12)
+            
+        else:
+            self.ln(10)
 
     def footer(self):
         self.set_text_color(0,0,0)

@@ -4,9 +4,6 @@ Created on Thu Aug 22 15:12:33 2024
 
 @author: hbotha
 """
-#TODO:
-#Update to automatically move all files to fs location
-#Add PN column to main DB
 
 import os
 import time
@@ -18,10 +15,14 @@ import sqlite3
 import warnings
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import threading
+import queue
 
 import db_operations
 import process_files
 import generate_IR
+import check_duplicate_sn
+import check_uid_grade
 
 warnings.filterwarnings('ignore')
 
@@ -38,7 +39,9 @@ class CsvFileHandler(FileSystemEventHandler):
         self.wo_value = None
         self.passfail = None
         self.shapelist = None
-        
+        self.input_queue = queue.Queue()
+        self.running = True
+
         self.mapping = {
             0: "Label",
             1: "Connector",
@@ -49,21 +52,56 @@ class CsvFileHandler(FileSystemEventHandler):
         }
         self.files_added = {key: {'csv': False, 'jpg': False, 'svg': False} for key in self.mapping}
                 
-    def start(self):
+    def start(self, copytestfiles):
         self.cleardirectory()
         self.observer.schedule(self, self.directory_to_watch, recursive=False)
         self.observer.start()
         print("Inspection Report Generator for PL39669")
         print(f"Monitoring directory: {self.directory_to_watch}")
+        # print("Enter 'defect' or 'd' to confirm the presence of a defect in the most recent inspection view.")
         
-        # self.copytestfiles()
+        # Start input handler thread
+        # input_thread = threading.Thread(target=self.input_handler, daemon=True)
+        # input_thread.start()
+        
+        if copytestfiles == True:
+            self.copytestfiles()
         try:
             while True:
-                time.sleep(1)
+                time.sleep(0.1)
+                # self.process_input()
         except KeyboardInterrupt:
+            self.running = False
             self.observer.stop()
             print("Monitoring stopped by user.")
         self.observer.join()
+    
+    # def input_handler(self):
+    #     """Handle user input in a separate thread"""
+    #     while self.running:
+    #         try:
+    #             user_input = input()
+    #             self.input_queue.put(user_input)
+    #         except EOFError:
+    #             break
+    
+    # def process_input(self):
+    #     """Process any pending user input"""
+    #     try:
+    #         while True:
+    #             user_input = self.input_queue.get_nowait()
+    #             if user_input.strip().lower() == "defect" or user_input.strip().lower() == "d":
+    #                 self.onInterrupt()
+    #     except queue.Empty:
+    #         pass
+    
+    # def onInterrupt(self):
+    #     ##Logic if on view 1-5:
+    #     if self.stateCount > 0 and self.stateCount < 6:
+    #         print("Defect confirmed. Please proceed to the next inspection in the sequence.")
+        
+    #     if self.stateCount == 0: 
+    #         print("Defect confirmed. Please proceed to the next inspection in the sequence.")
     
     def cleardirectory(self):
         for file in os.listdir(self.directory_to_watch):
@@ -79,7 +117,8 @@ class CsvFileHandler(FileSystemEventHandler):
         if '_' and 'Label' in event.src_path:
             self.sn_value = event.src_path.split('\\')[-1].split('_')[0]
             self.wo_value = self.getWO()
-
+                
+    
         if event.src_path.endswith(('csv', '.jpg', '.svg')) and self.stateCount in self.mapping:
             if self.mapping[self.stateCount] in event.src_path:
 
@@ -101,16 +140,19 @@ class CsvFileHandler(FileSystemEventHandler):
                 if (self.files_added[self.stateCount]['csv'] and 
                     self.files_added[self.stateCount]['jpg'] and 
                     self.files_added[self.stateCount]['svg']):
+                    
                     self.stateCount += 1
                     
                     if 'Graphics' in event.src_path:
                         print(f'Files detected for {os.path.splitext(event.src_path)[0].split("_Graphics")[0]}')
                     else:
                         print(f'Files detected for {os.path.splitext(event.src_path)[0]}')
+                    
         
         if event.src_path.endswith('png') and 'FinishInspection' in event.src_path:
             if self.stateCount == 6 and len(self.csv_files) == 6 and len(self.graphics_files) == 6:
                 self.stateCount = 0
+                self.isDuplicateSN = check_duplicate_sn.checkDuplicateSN(self.sn_value)
                 dirs = self.move_and_rename()
                 localdir = dirs[0]
                 networkdir = dirs[1]
@@ -121,7 +163,10 @@ class CsvFileHandler(FileSystemEventHandler):
                 shutil.move(localdir, networkdir)
                 print('Move complete.')
                 
+                db_operations.insert_report_path(db_path, networkdir)
+                
                 os.startfile(os.path.join(networkdir, f'{self.sn_value}_report.pdf'))
+                
 
                 self.csv_files.clear()
                 self.graphics_files.clear()
@@ -158,8 +203,12 @@ class CsvFileHandler(FileSystemEventHandler):
 
         data = process_files.main(directory_to_watch, self.csv_files)
         report_df, judgement = db_operations.main(db_path, data, self.sn_value, self.wo_value)
-
-        generate_IR.main(report_df, report_directory, self.sn_value, self.wo_value, judgement, graphics_photos, normal_photos)
+        
+        UID_Grade = check_uid_grade.main(str(self.sn_value))
+        
+        generate_IR.main(report_df, report_directory, self.sn_value, self.wo_value, judgement, graphics_photos, normal_photos, self.isDuplicateSN, UID_Grade)
+        
+        db_operations.insert_report_path(db_path, report_directory)
     
     def move_and_rename(self):
         directoryName = 'SN_'+str(self.sn_value)
@@ -232,7 +281,7 @@ class CsvFileHandler(FileSystemEventHandler):
         for file in os.listdir(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files'):
             if 'WedgelockDown' in file:
                 shutil.copy(os.path.join(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files', file), os.path.join(directory_to_watch, file))
-                sleep(0.1)     
+                sleep(0.1)
         for file in os.listdir(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files'):
             if 'WedgelockUp' in file:
                 shutil.copy(os.path.join(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files', file), os.path.join(directory_to_watch, file))
@@ -253,15 +302,20 @@ class CsvFileHandler(FileSystemEventHandler):
 if __name__ == "__main__":
     #SET RUN MODE (0 for running in UT, 1 for testing in CA)
     runmode = 0
+    
     if runmode == 0:
         directory_to_watch = r'C:\Keyence Final Inspect\VS Output'
         # directory_to_watch = r'C:/Users/hbotha/VS_File_Handler 2-1/VS-File-Handler/VS Output'
         db_path = r'\\rantec-ut-fs\ftp image\db\VS_Results.db'
-        sn_db = r'\\rantec-ut-fs\ftp image\db\sn_log.db'
         IR_Archive = r'\\rantec-ut-fs\ftp image\Inspection Results Archive\PL39669'
+        sn_db = r'\\rantec-ut-fs\ftp image\db\sn_log.db'
+        copytestfiles = False
     else:
         directory_to_watch = r'VS Output'
         db_path = r'VS_Results.db'
-    
+        IR_Archive = r'Inspection Results Archive\PL39669'
+        sn_db = r'sn_log.db'
+        copytestfiles = True
+        
     event_handler = CsvFileHandler(directory_to_watch)
-    event_handler.start()
+    event_handler.start(copytestfiles)
