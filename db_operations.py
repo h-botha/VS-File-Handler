@@ -140,10 +140,10 @@ def insert_report_path(db_path, report_directory):
     ''')
     
     vs_result_id = cursor.fetchone()
-    print(vs_result_id)
+    # print(vs_result_id)
     if vs_result_id:
         vs_result_id = vs_result_id[0]
-        print(vs_result_id)
+        # print(vs_result_id)
     else:
         print('err')
 
@@ -156,11 +156,11 @@ def insert_report_path(db_path, report_directory):
     ''',
     (str(report_path), str(vs_result_id))
     )
-    print(str(report_path))
+    # print(str(report_path))
     conn.commit()
     conn.close()
     
-    print(f'Added Report Path {report_path}')
+    # print(f'Added Report Path {report_path}')
     
     # if __name__ == "__main__":
         
