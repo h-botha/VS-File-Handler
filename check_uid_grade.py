@@ -22,7 +22,7 @@ def main(SN):
         UID_Grade = read_UID_PDF(uid_report_path)[1]
         print(f"ISO15415 Grade: {UID_Grade}")
         
-        return UID_Grade
+        return [UID_Grade, uid_report_path]
         
     except Exception as e:
         print(f'WARNING: Could not retrieve UID Label Score for SN{SN}')

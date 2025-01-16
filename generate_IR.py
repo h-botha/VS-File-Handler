@@ -97,7 +97,9 @@ class PDF(FPDF):
         self.wo_value = wo_value
         self.judgement = judgement
         self.isDuplicateSN = isDuplicateSN
-        self.UID_Grade = UID_Grade
+        self.UID_Grade = UID_Grade[0]
+        self.UID_report_path = UID_Grade[1]
+
         
         print(f'Generating report for SN {sn_value}')
         

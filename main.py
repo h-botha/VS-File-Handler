@@ -15,17 +15,46 @@ import sqlite3
 import warnings
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-import threading
-import queue
 
 import db_operations
 import process_files
 import generate_IR
 import check_duplicate_sn
 import check_uid_grade
+import Generate_test_report
+import get_custPO_and_PN
 
 warnings.filterwarnings('ignore')
 
+# Get CustPO and CustPN from Alliance
+def get_custPO_PN():
+    custPO_options = get_custPO_and_PN.main('PL39669')[0]
+    print(f"Select current Customer PO (enter corresponding number 1-{len(custPO_options)} on the left and press Enter):")
+    for index, PO in enumerate(custPO_options, 1):
+        print(f"{index}. {PO}")
+    
+    CustPO_choice = int(input('Enter number here: '))
+    try:
+        CustPO = custPO_options[CustPO_choice-1]
+    except Exception as e:
+        print("Selection Invalid or CustPO query failed. Test report generation disabled.")
+        CustPO = None
+        
+    custPN_options = get_custPO_and_PN.main('PL39669')[1]
+    print(f"Select current Customer PN (enter corresponding number 1-{len(custPN_options)} on the left and press Enter):")
+    for index, PN in enumerate(custPN_options, 1):
+        print(f"{index}. {PN}")
+    
+    CustPN_choice = int(input('Enter number here: '))
+    try:
+        CustPN = custPN_options[CustPN_choice-1]
+    except Exception as e:
+        print("Selection Invalid or CustPN query failed. Test report generation disabled.")
+        CustPN = None
+        
+    # print(CustPO, CustPN)
+    return CustPO, CustPN
+    
 class CsvFileHandler(FileSystemEventHandler):
     def __init__(self, directory_to_watch):
         self.directory_to_watch = directory_to_watch
@@ -39,7 +68,6 @@ class CsvFileHandler(FileSystemEventHandler):
         self.wo_value = None
         self.passfail = None
         self.shapelist = None
-        self.input_queue = queue.Queue()
         self.running = True
 
         self.mapping = {
@@ -117,7 +145,6 @@ class CsvFileHandler(FileSystemEventHandler):
         if '_' and 'Label' in event.src_path:
             self.sn_value = event.src_path.split('\\')[-1].split('_')[0]
             self.wo_value = self.getWO()
-                
     
         if event.src_path.endswith(('csv', '.jpg', '.svg')) and self.stateCount in self.mapping:
             if self.mapping[self.stateCount] in event.src_path:
@@ -134,7 +161,6 @@ class CsvFileHandler(FileSystemEventHandler):
                     self.graphics_files.add(event.src_path)
                     self.files_added[self.stateCount]['svg'] = True
                     
-                    
                 # print(f'File Added: {str(event.src_path)}')
                 
                 if (self.files_added[self.stateCount]['csv'] and 
@@ -148,7 +174,6 @@ class CsvFileHandler(FileSystemEventHandler):
                     else:
                         print(f'Files detected for {os.path.splitext(event.src_path)[0]}')
                     
-        
         if event.src_path.endswith('png') and 'FinishInspection' in event.src_path:
             if self.stateCount == 6 and len(self.csv_files) == 6 and len(self.graphics_files) == 6:
                 self.stateCount = 0
@@ -159,20 +184,18 @@ class CsvFileHandler(FileSystemEventHandler):
                 sleep(1)
                 self.generatePDF(localdir)
                 
-                print('Moving files to /rantec-ut-fs/...')
+                # print('Moving files to /rantec-ut-fs/...')
                 shutil.move(localdir, networkdir)
-                print('Move complete.')
+                # print('Move complete.')
                 
                 db_operations.insert_report_path(db_path, networkdir)
                 
                 os.startfile(os.path.join(networkdir, f'{self.sn_value}_report.pdf'))
                 
-
                 self.csv_files.clear()
                 self.graphics_files.clear()
                 self.png_files.clear()
                 self.cleardirectory()
-                
                 
                 # for file in os.listdir(report_directory):
                 #     if file.endswith(('.png', '.svg')):
@@ -190,7 +213,6 @@ class CsvFileHandler(FileSystemEventHandler):
             5: "EjectorDown"
         }
         
-        
         graphics_photos = sorted(
             [os.path.join(report_directory, file) for file in os.listdir(report_directory) if 'Graphics' in file and '.svg' in file],
             key=lambda x: next(i for i, name in self.mapping.items() if name in x)
@@ -205,10 +227,21 @@ class CsvFileHandler(FileSystemEventHandler):
         report_df, judgement = db_operations.main(db_path, data, self.sn_value, self.wo_value)
         
         UID_Grade = check_uid_grade.main(str(self.sn_value))
+        UID_report_path = UID_Grade[1]
+        
+        shutil.copy(UID_report_path, os.path.join(report_directory, "UID REPORT - "+os.path.basename(UID_report_path)))
         
         generate_IR.main(report_df, report_directory, self.sn_value, self.wo_value, judgement, graphics_photos, normal_photos, self.isDuplicateSN, UID_Grade)
         
         db_operations.insert_report_path(db_path, report_directory)
+        
+        if CustPO and CustPN:
+            try:
+                print(f'Generating test report for SN {self.sn_value}...')
+                test_report_pdf = Generate_test_report.main(self.sn_value, testdb, report_directory, CustPO, CustPN)
+            except Exception as e:
+                test_report_pdf = None
+                print(f'WARNING: Test data for SN{self.sn_value} not found.')
     
     def move_and_rename(self):
         directoryName = 'SN_'+str(self.sn_value)
@@ -245,9 +278,7 @@ class CsvFileHandler(FileSystemEventHandler):
             return [localdir, networkdir]
         else:
             return None
-        
 
-    
     def getWO(self):
         sn_value = int(self.sn_value)
         sn_conn = sqlite3.connect(sn_db)
@@ -264,7 +295,6 @@ class CsvFileHandler(FileSystemEventHandler):
             print('Serial Number Invalid. No Work Order attached.')
             WO = 'N/A'
         return WO
-
 
     def copytestfiles(self):
         
@@ -302,6 +332,8 @@ class CsvFileHandler(FileSystemEventHandler):
 if __name__ == "__main__":
     #SET RUN MODE (0 for running in UT, 1 for testing in CA)
     runmode = 0
+    testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_ICP-TR3_TestLog.mdb"
+    CustPO, CustPN = get_custPO_PN()
     
     if runmode == 0:
         directory_to_watch = r'C:\Keyence Final Inspect\VS Output'
