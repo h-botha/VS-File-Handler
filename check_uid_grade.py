@@ -9,10 +9,10 @@ import os
 import re
 from pypdf import PdfReader
 
-def main(SN):
+def main(PN, SN):
     
     try:
-        uid_report_path = get_UID_report(int(str(SN)))
+        uid_report_path = get_UID_report(PN, int(str(SN)))
         Datamatrix_SN = read_UID_PDF(uid_report_path)[0]
         
         if int(str(Datamatrix_SN)) != int(str(SN)):
@@ -28,9 +28,9 @@ def main(SN):
         print(f'WARNING: Could not retrieve UID Label Score for SN{SN}')
         return "N/A"
 
-def get_UID_report(SN):
+def get_UID_report(PN, SN):
     SN = str(int(SN))
-    UID_directory = r'\\RPS-RANTEC-DFS\Corridor\qa_test\qa_test\UID Label Scores\PL39669'
+    UID_directory = rf'\\RPS-RANTEC-DFS\Corridor\qa_test\qa_test\UID Label Scores\{PN}'
     for root, dirs, files in os.walk(UID_directory):
         for file in files:
             if "SN"+SN in file:
@@ -54,6 +54,7 @@ def read_UID_PDF(uid_report_path):
     return [SN_match, UID_match]
 
 if __name__ == "__main__":
-    UID_directory = r'\\RPS-RANTEC-DFS\Corridor\qa_test\qa_test\UID Label Scores\PL39669'
-    main(3002)
+    PN = 'PL39710'
+    UID_directory = rf'\\RPS-RANTEC-DFS\Corridor\qa_test\qa_test\UID Label Scores\{PN}'
+    main(PN, 5000)
             

@@ -22,15 +22,24 @@ def main(PN):
     
     CustPN = SODetail['PartXReference'].drop_duplicates().sort_values().tolist()
     SODetail = SODetail['SONumber'].tolist()
+    if len(SODetail) > 1:
+        SONumbers = tuple(SODetail)
     
-    SONumbers = tuple(SODetail)
+        custPO_query = f'''
+        SELECT SONumber, CustomerPO
+        FROM SOHeader
+        WHERE SONumber IN {SONumbers}
+        AND ClosedFlag = 'False'
+        '''
+    else:
+        SONumber = SODetail[0]
     
-    custPO_query = f'''
-    SELECT SONumber, CustomerPO
-    FROM SOHeader
-    WHERE SONumber IN {SONumbers}
-    AND ClosedFlag = 'False'
-    '''
+        custPO_query = f'''
+        SELECT SONumber, CustomerPO
+        FROM SOHeader
+        WHERE SONumber = '{SONumber}'
+        AND ClosedFlag = 'False'
+        '''
     
     CustPO = pd.read_sql(custPO_query, cnxn)
     CustPO = CustPO['CustomerPO'].tolist()
@@ -42,5 +51,6 @@ def main(PN):
 if __name__ == "__main__":
     PN = 'PL39669'
     lists = main(PN)
+    print(lists)
     
     

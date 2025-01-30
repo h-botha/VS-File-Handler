@@ -12,12 +12,12 @@ import sqlite3
 from datetime import datetime
 import os
 
-def main(db_path, df, sn_value, wo_value):
-    judgement = append_db(db_path, df, sn_value, wo_value)
+def main(db_path, df, partnumber, sn_value, wo_value):
+    judgement = append_db(db_path, df, partnumber, sn_value, wo_value)
     output_df = get_db_entry(db_path)
     return output_df, judgement
 
-def append_db(db_path, df, sn_value, wo_value):
+def append_db(db_path, df, partnumber, sn_value, wo_value):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -25,6 +25,7 @@ def append_db(db_path, df, sn_value, wo_value):
     CREATE TABLE IF NOT EXISTS VS_Results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         identifier TEXT NOT NULL,
+        partnumber TEXT NOT NULL,
         workorder TEXT NOT NULL,
         timestamp TEXT NOT NULL,
         judgement TEXT NOT NULL,
@@ -45,10 +46,10 @@ def append_db(db_path, df, sn_value, wo_value):
     judgement = get_judgement(df)
     timestamp = datetime.now().isoformat()
     
-    cursor.execute('''INSERT INTO VS_Results (identifier, workorder, timestamp, judgement)
-                   VALUES (?, ?, ?, ?)
+    cursor.execute('''INSERT INTO VS_Results (partnumber, identifier, workorder, timestamp, judgement)
+                   VALUES (?, ?, ?, ?, ?)
                    ''',
-                  (sn_value, wo_value, timestamp, judgement)
+                  (partnumber, sn_value, wo_value, timestamp, judgement)
                   )
     
     vs_result_id = cursor.lastrowid
@@ -72,7 +73,7 @@ def get_db_entry(db_path):
     cursor = conn.cursor()
     # Get the latest entry from VS_Results
     cursor.execute('''
-    SELECT id, identifier, timestamp 
+    SELECT id, identifier, timestamp
     FROM VS_Results 
     ORDER BY timestamp DESC 
     LIMIT 1
@@ -121,8 +122,6 @@ def get_judgement(df):
 def onConfirmedDefect(db_path, df, sn_value, wo_value):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-
-
 
 def insert_report_path(db_path, report_directory):
     for file in os.listdir(report_directory):

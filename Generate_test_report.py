@@ -85,6 +85,9 @@ def get_reportDF(df):
     else:
         judgement = 0
         
+    if judgement == 0:
+        print('WARNING: LAST TEST FOR THIS UNIT FAILED! CHECK THE TEST REPORT!')
+        
     df['Fail'][df['Fail'] == ''] = 'Pass'
     
     df[['Min', 'Max', 'MeasVal']] = df[['Min', 'Max', 'MeasVal']].applymap(lambda x: '0' if x == 'False' else x)
@@ -141,7 +144,6 @@ class PDF(FPDF):
             self.set_xy(x, y+header_offset)
             for label in labels:
                 self.cell(30, 4, label, 0, 2, 'R')
-            
             self.set_font('Times', '', 10)
             self.set_xy(x + 30, y+header_offset)
             for value in values:
@@ -152,8 +154,11 @@ class PDF(FPDF):
                 # if Test Proc not final ATP
                 elif (section == header_sections[0] 
                       and value == values[1] 
-                      and value != re.findall(r"ATP39669 Rev [A-Z]", values[1])[0]
+                      
+                      and value != re.findall(r"(ATP(39669|39710) Rev [A-Z])", values[1])[0][0]
+                      
                       ):
+
                     self.set_fill_color(250, 237, 0)
                     self.cell(30, 4, str(value), 0, 2, 'L', True)
                 else:
@@ -190,7 +195,7 @@ class PDF(FPDF):
         self.cell(275/2,5,'Rantec Power Systems Inc', 0, 0, 'L')
         self.cell(275/2,5, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'R')
 
-def generateReport(ReportDF, judgement, H, output_path):
+def generateReport(PN, ReportDF, judgement, H, output_path):
     w = [15,25,110,25,25,25,20,30]
     align = ['C','C','L','C','C','C','C','C']
     pdf = PDF(H, judgement)
@@ -232,13 +237,13 @@ def generateReport(ReportDF, judgement, H, output_path):
     pdf.cell(40, 5, f'Passed = {pcount}', 0, 0)
     pdf.cell(40, 5, f'Failed = {fcount}', 0, 0)
     
-    test_report_pdf = pdf.output(os.path.join(output_path,f'{H[8]}_test_report.pdf'), 'F')
+    test_report_pdf = pdf.output(os.path.join(output_path,f'{PN}_{H[6]}_SN_{H[8]}.pdf'), 'F')
     
     # os.startfile(os.path.join(output_path,f'{H[8]}_test_report.pdf'))
 
     return test_report_pdf
       
-def main(SN, testdb, output_path, CustPO, CustPN):
+def main(PN, SN, testdb, output_path, CustPO, CustPN):
     # testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_ICP-TR3_TestLog.mdb"
     # SN = input("Enter Serial Number: ")
     df = queryDB(SN, testdb)
@@ -246,7 +251,7 @@ def main(SN, testdb, output_path, CustPO, CustPN):
     H[6] = CustPN
     H[7] = CustPO
     reportDF, judgement = get_reportDF(df)
-    test_report_pdf = generateReport(reportDF, judgement, H, output_path)
+    test_report_pdf = generateReport(PN, reportDF, judgement, H, output_path)
     
     return test_report_pdf
 
@@ -254,10 +259,11 @@ def main(SN, testdb, output_path, CustPO, CustPN):
 if __name__ == "__main__":
     testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_ICP-TR3_TestLog.mdb"
     # SN = input("Enter Serial Number: ")
+    PN = 'PL39669'
     SN = 3405
     output_path = r"C:\Users\hbotha\Desktop\Code Projects"
     CustPO = 'test'
     CustPN = 'test'
-    test_report_pdf = main(SN, testdb, output_path, CustPO, CustPN)
+    test_report_pdf = main(PN, SN, testdb, output_path, CustPO, CustPN)
 
 
