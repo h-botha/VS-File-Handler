@@ -11,13 +11,13 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-def checkDuplicateSN(SN):
+def checkDuplicateSN(PN, SN):
     cnxn = pyodbc.connect(driver='{SQL Server}', host=r'los-osos-06.loroot.local\alliance', database='Rantec', user='PartsAndOrders', password='generaluse')
     
-    query = '''
+    query = f'''
     SELECT TransactionID, SNLotNumber
     FROM TransactionDetail
-    WHERE PartNumber = 'PL39669'
+    WHERE PartNumber = '{PN}'
     AND ToDepartment = 'COGS'
     '''
     
@@ -45,4 +45,5 @@ def checkDuplicateSN(SN):
 if __name__ == "__main__":
     
     SN = '4005'
-    df = checkDuplicateSN(SN)
+    PN = 'PL38509'
+    df = checkDuplicateSN(PN, SN)

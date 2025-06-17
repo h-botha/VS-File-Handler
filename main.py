@@ -27,7 +27,7 @@ import get_custPO_and_PN
 warnings.filterwarnings('ignore')
 
 def get_PN():
-    PN_options = ['PL39669', 'PL39710']
+    PN_options = ['PL39669', 'PL39710', 'PL38509']
     print(f"Select current Rantec PN (enter corresponding number 1-{len(PN_options)} on the left and press Enter):")
     for index, PN in enumerate(PN_options, 1):
         print(f"{index}. {PN}")
@@ -89,7 +89,6 @@ class CsvFileHandler(FileSystemEventHandler):
         self.csv_pn1 = None
         self.csv_pn2 = None
 
-
         self.mapping = {
             0: "Label",
             1: "Connector",
@@ -98,6 +97,19 @@ class CsvFileHandler(FileSystemEventHandler):
             4: "EjectorUp",
             5: "EjectorDown"
         }
+        
+        alt_mapping = {
+            0: "Label",
+            1: "Connector",
+            2: "WedgelockDown",
+            3: "WedgelockUp",
+            4: "Side1",
+            5: "Side2"
+        }
+        
+        if self.PN == 'PL38509':
+            self.mapping = alt_mapping
+            
         self.files_added = {key: {'csv': False, 'jpg': False, 'svg': False} for key in self.mapping}
                 
     def start(self, copytestfiles):
@@ -180,7 +192,7 @@ class CsvFileHandler(FileSystemEventHandler):
             if self.stateCount == 6 and len(self.csv_files) == 6 and len(self.graphics_files) == 6:
                 self.stateCount = 0
                 self.verifyPN()
-                self.isDuplicateSN = check_duplicate_sn.checkDuplicateSN(self.sn_value)
+                self.isDuplicateSN = check_duplicate_sn.checkDuplicateSN(self.PN, self.sn_value)
                 dirs = self.move_and_rename()
                 localdir = dirs[0]
                 networkdir = dirs[1]
@@ -224,6 +236,18 @@ class CsvFileHandler(FileSystemEventHandler):
             5: "EjectorDown"
         }
         
+        alt_mapping = {
+            0: "Label",
+            1: "Connector",
+            2: "WedgelockDown",
+            3: "WedgelockUp",
+            4: "Side1",
+            5: "Side2"
+        }
+        
+        if self.PN == 'PL38509':
+            self.mapping = alt_mapping
+        
         graphics_photos = sorted(
             [os.path.join(report_directory, file) for file in os.listdir(report_directory) if 'Graphics' in file and '.svg' in file],
             key=lambda x: next(i for i, name in self.mapping.items() if name in x)
@@ -249,6 +273,8 @@ class CsvFileHandler(FileSystemEventHandler):
         if CustPO and CustPN:
             try:
                 print(f'Generating test report for SN {self.sn_value}...')
+                if self.PN == 'PL38509':
+                    testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_HELVPS_TestLog.mdb"
                 test_report_pdf = Generate_test_report.main(self.PN, self.sn_value, testdb, report_directory, CustPO, CustPN)
             except Exception as e:
                 test_report_pdf = None
@@ -310,6 +336,7 @@ class CsvFileHandler(FileSystemEventHandler):
     def copytestfiles(self):
         
         directory_to_watch = self.directory_to_watch
+        print('Copying Test Files...')
         for file in os.listdir(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files'):
 
             if 'Label' in file:
@@ -328,11 +355,11 @@ class CsvFileHandler(FileSystemEventHandler):
                 shutil.copy(os.path.join(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files', file), os.path.join(directory_to_watch, file))
                 sleep(0.1)     
         for file in os.listdir(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files'):
-            if 'EjectorUp' in file:
+            if 'EjectorUp' or 'Side1' in file:
                 shutil.copy(os.path.join(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files', file), os.path.join(directory_to_watch, file))
                 sleep(0.1)
         for file in os.listdir(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files'):
-            if 'EjectorDown' in file:
+            if 'EjectorDown' or 'Side2' in file:
                 shutil.copy(os.path.join(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files', file), os.path.join(directory_to_watch, file))
                 sleep(0.1)
         for file in os.listdir(r'C:\Users\hbotha\VS_File_Handler V2.x\Test Files'):
@@ -342,7 +369,7 @@ class CsvFileHandler(FileSystemEventHandler):
 
 if __name__ == "__main__":
     #SET RUN MODE (0 for running in UT, 1 for testing in CA)
-    runmode = 0
+    runmode = 1
     rantec_PN = get_PN()
     testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_ICP-TR3_TestLog.mdb"
     CustPO, CustPN = get_custPO_PN(rantec_PN)

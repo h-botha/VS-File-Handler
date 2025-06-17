@@ -49,7 +49,7 @@ def main(PN):
     
 
 if __name__ == "__main__":
-    PN = 'PL39669'
+    PN = 'PL38509'
     lists = main(PN)
     print(lists)
     

@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 """
+Created on Tue Jun 17 11:22:13 2025
+
+@author: hbotha
+"""
+
+"""
 Created on Fri Oct  4 14:22:31 2024
 
 @author: hbotha
@@ -93,9 +99,3 @@ def main(svg_file, jpg_file, out_dir):
     os.rename(png, jpg_basename+'.png')
     
     return png
-
-
-    
-
-    
-    

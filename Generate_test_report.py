@@ -18,6 +18,9 @@ warnings.filterwarnings("ignore")
 
 # ICP PASS SN
 # 3368
+
+# HE-LVPS PASS SN
+# 5406
     
 def queryDB(SN, testdb):
     
@@ -154,9 +157,7 @@ class PDF(FPDF):
                 # if Test Proc not final ATP
                 elif (section == header_sections[0] 
                       and value == values[1] 
-                      
-                      and value != re.findall(r"(ATP(39669|39710) Rev [A-Z])", values[1])[0][0]
-                      
+                      and value != re.findall(r"(ATP(39669|39710|38509) Rev [A-Z])", values[1])[0][0]
                       ):
 
                     self.set_fill_color(250, 237, 0)
@@ -257,10 +258,11 @@ def main(PN, SN, testdb, output_path, CustPO, CustPN):
 
 
 if __name__ == "__main__":
-    testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_ICP-TR3_TestLog.mdb"
+    # testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_ICP-TR3_TestLog.mdb"
+    testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_HELVPS_TestLog.mdb"
     # SN = input("Enter Serial Number: ")
-    PN = 'PL39669'
-    SN = 3405
+    PN = 'PL38509'
+    SN = 5406
     output_path = r"C:\Users\hbotha\Desktop\Code Projects"
     CustPO = 'test'
     CustPN = 'test'

@@ -20,16 +20,21 @@ def main(PN, SN):
             return "N/A"
         
         UID_Grade = read_UID_PDF(uid_report_path)[1]
-        print(f"ISO15415 Grade: {UID_Grade}")
+        if PN == 'PL38509':
+            print(f"ISO29158 (AIM-DPM) Grade: {UID_Grade}")
+        else:
+            print(f"ISO15415 Grade: {UID_Grade}")
         
         return [UID_Grade, uid_report_path]
         
     except Exception as e:
-        print(f'WARNING: Could not retrieve UID Label Score for SN{SN}')
+        print(f'WARNING: Could not retrieve UID Label Score for SN{SN}. {e}')
         return "N/A"
 
 def get_UID_report(PN, SN):
     SN = str(int(SN))
+    if PN == 'PL38509':
+        PN = 'PL38509 HE-LVPS'
     UID_directory = rf'\\RPS-RANTEC-DFS\Corridor\qa_test\qa_test\UID Label Scores\{PN}'
     for root, dirs, files in os.walk(UID_directory):
         for file in files:
@@ -42,19 +47,25 @@ def read_UID_PDF(uid_report_path):
     reader = PdfReader(uid_report_path)
     page = reader.pages[0]
     text = page.extract_text()
-
     
     SN_pattern = r"<GS>SEQ (\d{5})<GS>"
     UID_grade_pattern = r"ISO15415 ([A-F] \(\d+\.\d+\))"
     
-    SN_match = re.search(SN_pattern, text).group(1)
-    UID_match = re.search(UID_grade_pattern, text).group(1)
-
+    try:
+        SN_match = re.search(SN_pattern, text).group(1)
+        UID_match = re.search(UID_grade_pattern, text).group(1)
+    
+    except Exception:
+        SN_pattern = r"<GS>SEQ (\d{5})<RS>"
+        UID_grade_pattern = r"ISO29158 \(AIM-DPM\) ([A-F] \(\d+\.\d+\))"
+        
+        SN_match = re.search(SN_pattern, text).group(1)
+        UID_match = re.search(UID_grade_pattern, text).group(1)
     
     return [SN_match, UID_match]
 
 if __name__ == "__main__":
-    PN = 'PL39710'
+    PN = 'PL38509'
     UID_directory = rf'\\RPS-RANTEC-DFS\Corridor\qa_test\qa_test\UID Label Scores\{PN}'
-    main(PN, 5000)
+    main(PN, 5406)
             
