@@ -261,10 +261,15 @@ class CsvFileHandler(FileSystemEventHandler):
         data = process_files.main(directory_to_watch, self.csv_files)
         report_df, judgement = db_operations.main(db_path, data, self.PN, self.sn_value, self.wo_value)
         
-        UID_Grade = check_uid_grade.main(self.PN, str(self.sn_value))
-        UID_report_path = UID_Grade[1]
+        try:
+            UID_Grade = check_uid_grade.main(self.PN, str(self.sn_value))
+            UID_report_path = UID_Grade[1]
         
-        shutil.copy(UID_report_path, os.path.join(report_directory, "UID REPORT - "+os.path.basename(UID_report_path)))
+            shutil.copy(UID_report_path, os.path.join(report_directory, "UID REPORT - "+os.path.basename(UID_report_path)))
+        except Exception as e:
+            UID_Grade = None
+            UID_report_path = None
+            print(f"UID Error: {e}")
         
         generate_IR.main(report_df, report_directory, self.PN, self.sn_value, self.wo_value, judgement, graphics_photos, normal_photos, self.isDuplicateSN, UID_Grade)
         
