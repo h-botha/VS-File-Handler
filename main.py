@@ -369,7 +369,7 @@ class CsvFileHandler(FileSystemEventHandler):
 
 if __name__ == "__main__":
     #SET RUN MODE (0 for running in UT, 1 for testing in CA)
-    runmode = 1
+    runmode = 0
     rantec_PN = get_PN()
     testdb = r"\\rantec-ut-fs\Utah Test Engineering$\ATE Test\Test Results\HDMSys ATE\L3Harris_ICP-TR3_TestLog.mdb"
     CustPO, CustPN = get_custPO_PN(rantec_PN)
