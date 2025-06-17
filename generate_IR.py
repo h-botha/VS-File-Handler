@@ -98,8 +98,12 @@ class PDF(FPDF):
         self.wo_value = wo_value
         self.judgement = judgement
         self.isDuplicateSN = isDuplicateSN
-        self.UID_Grade = UID_Grade[0]
-        self.UID_report_path = UID_Grade[1]
+        if UID_Grade != None:
+            self.UID_Grade = UID_Grade[0]
+            self.UID_report_path = UID_Grade[1]
+        else:
+            self.UID_Grade = "ERROR - NONE"
+            self.UID_report_path = None
 
         
         print(f'Generating report for SN {sn_value}')

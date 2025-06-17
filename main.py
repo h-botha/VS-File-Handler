@@ -227,6 +227,7 @@ class CsvFileHandler(FileSystemEventHandler):
         return PN_OK
         
     def generatePDF(self, report_directory):
+        print("Generating Inspeciton Report...")
         self.mapping = {
             0: "Label",
             1: "Connector",
@@ -257,7 +258,7 @@ class CsvFileHandler(FileSystemEventHandler):
             [os.path.join(report_directory, file) for file in os.listdir(report_directory) if 'Graphics' not in file and '.jpg' in file],
             key=lambda x: next(i for i, name in self.mapping.items() if name in x)
             )
-
+        
         data = process_files.main(directory_to_watch, self.csv_files)
         report_df, judgement = db_operations.main(db_path, data, self.PN, self.sn_value, self.wo_value)
         
