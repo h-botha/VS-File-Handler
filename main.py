@@ -22,7 +22,8 @@ import generate_IR
 import check_duplicate_sn
 import check_uid_grade
 import Generate_test_report
-import get_custPO_and_PN
+import get_custPO_and_PN_Syteline
+import getWO
 
 warnings.filterwarnings('ignore')
 
@@ -36,9 +37,9 @@ def get_PN():
     print(PN)
     return PN
     
-# Get CustPO and CustPN from Alliance
+# Get CustPO and CustPN from Alliance/Syteline
 def get_custPO_PN(rantec_PN):
-    custPO_options = get_custPO_and_PN.main(rantec_PN)[0]
+    custPO_options = get_custPO_and_PN_Syteline.main(rantec_PN)[0]
     if len(custPO_options) == 1: 
         CustPO = custPO_options[0]
     else:
@@ -53,7 +54,7 @@ def get_custPO_PN(rantec_PN):
             print("Selection Invalid or CustPO query failed. Test report generation disabled.")
             CustPO = None
         
-    custPN_options = get_custPO_and_PN.main(rantec_PN)[1]
+    custPN_options = get_custPO_and_PN_Syteline.main(rantec_PN)[1]
     if len(custPN_options) == 1: 
         CustPN = custPN_options[0]
     else:
@@ -65,7 +66,7 @@ def get_custPO_PN(rantec_PN):
         try:
             CustPN = custPN_options[CustPN_choice-1]
         except Exception as e:
-            print("Selection Invalid or CustPN query failed. Test report generation disabled.")
+            print(f"Selection Invalid or CustPN query failed. Test report generation disabled: {e}")
             CustPN = None
         
     # print(CustPO, CustPN)
@@ -158,8 +159,7 @@ class CsvFileHandler(FileSystemEventHandler):
         
         if '_' and 'Label' in event.src_path:
             self.sn_value = event.src_path.split('\\')[-1].split('_')[0]
-            self.wo_value = self.getWO()
-    
+            
         if event.src_path.endswith(('csv', '.jpg', '.svg')) and self.stateCount in self.mapping:
             if self.mapping[self.stateCount] in event.src_path:
 
@@ -191,6 +191,7 @@ class CsvFileHandler(FileSystemEventHandler):
         if event.src_path.endswith('png') and 'FinishInspection' in event.src_path:
             if self.stateCount == 6 and len(self.csv_files) == 6 and len(self.graphics_files) == 6:
                 self.stateCount = 0
+                self.wo_value = getWO.QuerySyteline(self.PN, self.sn_value)
                 self.verifyPN()
                 self.isDuplicateSN = check_duplicate_sn.checkDuplicateSN(self.PN, self.sn_value)
                 dirs = self.move_and_rename()
@@ -213,7 +214,9 @@ class CsvFileHandler(FileSystemEventHandler):
                 self.csv_pn2 = None
                         
                 self.files_added = {key: {'csv': False, 'jpg': False, 'svg': False} for key in self.mapping}
-    
+                self.sn_value = None
+                print("Monitoring directory...")
+                
     def verifyPN(self):
         if self.PN == self.csv_pn1 and self.PN == self.csv_pn2:
             PN_OK = True
@@ -321,23 +324,25 @@ class CsvFileHandler(FileSystemEventHandler):
             return [localdir, networkdir]
         else:
             return None
-
-    def getWO(self):
-        sn_value = int(self.sn_value)
-        sn_conn = sqlite3.connect(sn_db)
-        query = f"""
-        SELECT WO
-        FROM SNs
-        WHERE "P/N" = '{self.PN}' AND "S/N" = '{sn_value}'
-        """
-        sn_log = pd.read_sql(query, sn_conn)
+    
+    # REPLACED BY getWO.py module
+    # def getWO(self):
+    #     # GET FROM SN LOG
+    #     sn_value = int(self.sn_value)
+    #     sn_conn = sqlite3.connect(sn_db)
+    #     query = f"""
+    #     SELECT WO
+    #     FROM SNs
+    #     WHERE "P/N" = '{self.PN}' AND "S/N" = '{sn_value}'
+    #     """
+    #     sn_log = pd.read_sql(query, sn_conn)
         
-        try:
-            WO = sn_log['WO'].iloc[0]
-        except IndexError:
-            # print('Serial Number Invalid. No Work Order attached.')
-            WO = 'N/A'
-        return WO
+    #     try:
+    #         WO = sn_log['WO'].iloc[0]
+    #     except IndexError:
+    #         # print('Serial Number Invalid. No Work Order attached.')
+    #         WO = 'N/A'
+    #     return WO
 
     def copytestfiles(self):
         

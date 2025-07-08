@@ -27,6 +27,8 @@ def transform_data(csv_files):
             3 if 'WedgelockDown' in str(x) else
             4 if 'WedgelockUp' in str(x) else
             5 if 'EjectorUp' in str(x) else
+            5 if 'Side1' in str(x) else
+            6 if 'Side2' in str(x) else
             6 if 'EjectorDown' in str(x) else 0
         )
         df['View'] = df['View'][0]
