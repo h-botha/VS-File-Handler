@@ -108,11 +108,30 @@ class PDF(FPDF):
         
         print(f'Generating report for SN {sn_value}')
         
-        order = [1, 0, 4, 5, 3, 2]
-        outdir = os.path.dirname(sorted(graphics_photos)[0])
+        if self.PN == 'PL39669' or self.PN == 'PL39710':
+            mapping = {
+                0: "Label",
+                1: "Connector",
+                2: "WedgelockDown",
+                3: "WedgelockUp",
+                4: "EjectorUp",
+                5: "EjectorDown",
+            }
+        else:
+            mapping = {
+                0: "Label",
+                1: "Connector",
+                2: "WedgelockDown",
+                3: "WedgelockUp",
+                4: "Side1",
+                5: "Side2"
+            }
         
-        self.normal_photos = [sorted(normal_photos)[i] for i in order]
-        self.graphics_photos = [sorted(graphics_photos)[i] for i in order]
+        # order = [1, 0, 4, 5, 3, 2]
+        outdir = os.path.dirname(sorted(graphics_photos)[0])
+
+        self.normal_photos = [normal_photos[i] for i, key in mapping.items()]
+        self.graphics_photos = [graphics_photos[i] for i, key in mapping.items()]
         
         i=0
         for photo in self.graphics_photos:
@@ -161,3 +180,4 @@ class PDF(FPDF):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
         self.cell(0, 10, f'Page {self.page_no()}/{{nb}}', 0, 0, 'C')
+

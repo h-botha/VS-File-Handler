@@ -23,6 +23,7 @@ def checkDuplicateSN(PN, SN):
         if df.shape[0] > 0:
             
             txID = df.iloc[0]['TransactionID']
+            SN = df.iloc[0]['SerNum']
             if "." in str(txID):
                 AllianceOrSyteline = 'Alliance'
             else:
@@ -34,7 +35,7 @@ def checkDuplicateSN(PN, SN):
                   \nSN {SN}
                   \nTransaction ID {txID}
                   ''')
-                  
+            print(SN)
             return str(txID)
     else:
         return 0
@@ -51,6 +52,7 @@ def QuerySyteline(PN, SN):
     if df.shape[0] > 0:
         df['SerNum'] = pd.to_numeric(df['SerNum'])
         df = df.rename(columns={'TransNum': 'TransactionID'})
+        df = df.loc[df['SerNum'] == int(SN)]
     else:
         df = pd.DataFrame()
     
@@ -78,6 +80,6 @@ def QueryAlliance(PN, SN):
 
 if __name__ == "__main__":
     
-    SN = '301'
-    PN = 'PL38509'
-    df = checkDuplicateSN(PN, SN)
+    SN = '02809'
+    PN = 'PL39669'
+    txid = checkDuplicateSN(PN, SN)

@@ -262,6 +262,8 @@ class CsvFileHandler(FileSystemEventHandler):
             key=lambda x: next(i for i, name in self.mapping.items() if name in x)
             )
         
+        self.csv_files = [sorted(self.csv_files)[i] for i, key in self.mapping.items()]
+        
         data = process_files.main(directory_to_watch, self.csv_files)
         report_df, judgement = db_operations.main(db_path, data, self.PN, self.sn_value, self.wo_value)
         

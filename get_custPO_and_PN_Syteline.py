@@ -5,7 +5,7 @@ Created on Tue Jan 14 07:43:26 2025
 @author: hbotha
 """
 
-import pyodbc
+# import pyodbc
 import pandas as pd
 import requests
 
@@ -47,8 +47,12 @@ import requests
 #     CustPO = CustPO['CustomerPO'].tolist()
     
 #     return [CustPO, CustPN]
-    
+
+import pandas as pd
+import requests
+
 def main(PN):
+    # Returns lists of possible customer part numbers and open customer POs for a Rantec final assy PN
     headers = {
         'Authorization': r'b/XdI6IQzCviZOGJ0E+002DoKUFOPmVDkwpQDbQjm3w/qkdxDUzmqvSYEZDCmJGWpA23OTlhFpxRHFz3WOsvay8V58XdIp/UIsr5TpCdMwvoO+jzjloJpqRoP6SsKySXtOhenXX+H16k2QrA3xgq+ndVVyqNZEqTN9l0Etwi2Z5tSKxCCew3+O1e+RcbUNJbOt62vDwNfMsco4sXkBnbKfgGeKutyPcF38tDBFoFvjMoBEbT5Zi1UXc5HhUybapY2eeJMpF33MpkON4opJp7AKUeAsFVBLKEuHVMHfhZSzaaIsz0D0ndOacBWfdT6Rb33cx/JGjiSLPs00B2gZUConN54TJvrsChHc7YbztWUddNsDYahPEW5KX6q6RlNYtJHXyKdicmLfRU0Ckw5JZcDrwqn1PcC/KL6zh1X9cePJgzD+ixqkgGGCVuCvFWQqrq2e84ISx5IJg3KBlyEsfmTAuaocXKmGIlWHbkc01G8Rinb3moHoKJPayV8Fi76TVu',
         'x-infor-MongooseConfig': 'PRD_SL_RANTEC'
@@ -63,8 +67,8 @@ def main(PN):
     return [CustPO, CustPN]
 
 if __name__ == "__main__":
-    PN = 'PL38509'
-    lists = main(PN)
-    print(lists)
+    PN = 'PL25553-10'
+    CustPNPO = main(PN)
+    print(CustPNPO)
     
     
